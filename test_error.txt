@@ -1,3 +1,4 @@
 int y = 5
-int x = ;
+int x = 50;
+int z = x + y;
 print(z);
