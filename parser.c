@@ -24,6 +24,7 @@ typedef enum {
 typedef struct {
     TokenType type;
     char value[256];
+    int lineNumber;
 } Token;
 
 // Symbol table for variables
@@ -56,7 +57,7 @@ void setVariable(const char *name, int value);
 
 // Error handling
 void error(const char *msg) {
-    printf("Error at line %d: %s\n", lineNumber, msg);
+    printf("Error at line %d: %s\n", currentToken.lineNumber, msg);
     exit(1);
 }
 
@@ -114,8 +115,12 @@ void nextToken() {
     if (source[pos] == '\0') {
         currentToken.type = TOKEN_EOF;
         strcpy(currentToken.value, "EOF");
+        currentToken.lineNumber = lineNumber;
         return;
     }
+    
+    // Store line number for this token
+    currentToken.lineNumber = lineNumber;
     
     // Check for keywords and identifiers
     if (isalpha(source[pos])) {
@@ -236,6 +241,8 @@ int expression() {
 
 // Parser: Statement → Declaration | PrintStmt
 void statement() {
+    int statementLine = currentToken.lineNumber;  // Track statement start line
+    
     // Declaration: "int" IDENTIFIER "=" Expression ";"
     if (currentToken.type == TOKEN_INT) {
         nextToken();
@@ -252,7 +259,14 @@ void statement() {
         
         int value = expression();
         
-        expect(TOKEN_SEMICOLON, "Expected ';' at end of statement");
+        if (currentToken.type != TOKEN_SEMICOLON) {
+            // Report error at the statement line
+            int savedLine = currentToken.lineNumber;
+            currentToken.lineNumber = statementLine;
+            error("Expected ';' at end of statement");
+            currentToken.lineNumber = savedLine;
+        }
+        nextToken();
         
         setVariable(name, value);
         return;
