@@ -3,216 +3,287 @@
 #include <string.h>
 #include <ctype.h>
 
-// Token types
+//tokens
 typedef enum {
-    TOKEN_INT,      // "int" keyword
-    TOKEN_PRINT,    // "print" keyword
-    TOKEN_IDENT,    // variable names
-    TOKEN_NUMBER,   // numeric literals
-    TOKEN_PLUS,     // +
-    TOKEN_MINUS,    // -
-    TOKEN_MULTIPLY, // *
-    TOKEN_DIVIDE,   // /
-    TOKEN_ASSIGN,   // =
-    TOKEN_SEMICOLON,// ;
-    TOKEN_LPAREN,   // (
-    TOKEN_RPAREN,   // )
-    TOKEN_EOF,      // end of file
-    TOKEN_ERROR     // error token
-} TokenType;
+
+    T_INT,
+    T_PRINT,
+    T_ID,//variable names
+    T_NUM,//numeric literals
+    
+    T_PLUS,
+    T_MINUS, 
+    T_MULTIPLY,
+    T_DIVIDE,   
+    T_ASSIGN, 
+
+    T_SEMICOLON,
+    T_LPAREN,//(
+    T_RPAREN,//)
+
+    T_ENDFILE,
+    T_ERROR
+
+} Token_Type;
 
 typedef struct {
-    TokenType type;
+
+    Token_Type type;
     char value[256];
-    int lineNumber;
+    int Line_Number;
+
 } Token;
 
-// Symbol table for variables
+//symbol table for variables
 typedef struct {
+
     char name[256];
     int value;
-    int isDefined;
+    int IsDefined;
+
 } Variable;
 
 Variable variables[100];
-int varCount = 0;
 
-// Global state
-char *source;
-int pos = 0;
-Token currentToken;
-int lineNumber = 1;
+int Var_Count = 0;
 
-// Function prototypes
-void nextToken();
-void parse();
-void statement();
-int expression();
-int term();
-int factor();
-void error(const char *msg);
-void expect(TokenType type, const char *msg);
-int getVariable(const char *name);
-void setVariable(const char *name, int value);
+//global state
+char *source;   
+int pos = 0; 
+Token Current_Token; 
+int Line_Number = 1; 
 
-// Error handling
-void error(const char *msg) {
-    printf("Error at line %d: %s\n", currentToken.lineNumber, msg);
+//function prototypes
+void Next_Token();
+void Parse();
+void Statement();
+int Expression();
+int Term();
+int Factor();
+void Error(const char *msg);
+void Expect(Token_Type type, const char *msg);
+int Get_Variable(const char *name);
+void Set_Variable(const char *name, int value, int Line_Num);
+
+//Error handling
+void Error(const char *msg){
+
+    printf("Error at line %d: %s\n", Current_Token.Line_Number, msg);
     exit(1);
+
 }
 
-// Expect a specific token type
-void expect(TokenType type, const char *msg) {
-    if (currentToken.type != type) {
-        error(msg);
-    }
-    nextToken();
+//expect a specific token type
+void Expect(Token_Type type, const char *msg){
+
+    if (Current_Token.type != type){
+        Error(msg);
+ }
+
+    Next_Token();
 }
 
-// Symbol table: get variable value
-int getVariable(const char *name) {
-    for (int i = 0; i < varCount; i++) {
-        if (strcmp(variables[i].name, name) == 0) {
-            if (!variables[i].isDefined) {
-                char errMsg[300];
-                sprintf(errMsg, "Variable '%s' used before initialization", name);
-                error(errMsg);
+//symbol table get variable value
+int Get_Variable(const char *name)
+{
+    for (int i = 0; i < Var_Count; i++)
+    {
+        if (strcmp(variables[i].name, name) == 0)
+        {
+            if (!variables[i].IsDefined)
+            {
+                char Err_Msg[300];
+                sprintf(Err_Msg, "Variable '%s' used before initialization", name);
+                Error(Err_Msg);
             }
             return variables[i].value;
         }
     }
-    char errMsg[300];
-    sprintf(errMsg, "Undefined variable '%s'", name);
-    error(errMsg);
+    char Err_Msg[300];
+    sprintf(Err_Msg, "Undefined variable '%s'", name);
+
+    Error(Err_Msg);
+
     return 0;
 }
 
-// Symbol table: set variable value
-void setVariable(const char *name, int value) {
-    // Check if variable already exists
-    for (int i = 0; i < varCount; i++) {
-        if (strcmp(variables[i].name, name) == 0) {
-            char errMsg[300];
-            sprintf(errMsg, "Variable '%s' already declared", name);
-            error(errMsg);
+//symbol table set variable value
+void Set_Variable(const char *name, int value, int Line_Num) 
+{
+    //check if variable already exists
+    for (int i = 0; i < Var_Count; i++) 
+    {
+        if (strcmp(variables[i].name, name) == 0) 
+        {
+            printf("Error at line %d: Variable '%s' already declared\n", Line_Num, name);
+            exit(1);
         }
     }
-    // Add new variable
-    strcpy(variables[varCount].name, name);
-    variables[varCount].value = value;
-    variables[varCount].isDefined = 1;
-    varCount++;
+
+    //add new variable
+    strcpy(variables[Var_Count].name, name);
+    variables[Var_Count].value = value;
+    variables[Var_Count].IsDefined = 1;
+    Var_Count++;
 }
 
-// Tokenizer implementation
-void nextToken() {
-    // Skip whitespace and track line numbers
-    while (source[pos] && isspace(source[pos])) {
-        if (source[pos] == '\n') lineNumber++;
+//tokenizer implementation
+void Next_Token() 
+{
+    //skip whitespace and track line numbers
+    while (source[pos] && isspace(source[pos])) 
+    {
+        if (source[pos] == '\n') Line_Number++;
         pos++;
     }
     
-    if (source[pos] == '\0') {
-        currentToken.type = TOKEN_EOF;
-        strcpy(currentToken.value, "EOF");
-        currentToken.lineNumber = lineNumber;
+    if (source[pos] == '\0') 
+    {
+        Current_Token.type = T_ENDFILE;
+        strcpy(Current_Token.value, "EOF");
+        Current_Token.Line_Number = Line_Number;
+
         return;
     }
     
-    // Store line number for this token
-    currentToken.lineNumber = lineNumber;
+    //store line number for this token
+    Current_Token.Line_Number = Line_Number;
     
-    // Check for keywords and identifiers
-    if (isalpha(source[pos])) {
+    //check for keywords and identifiers
+    if (isalpha(source[pos])) 
+    {
         int start = pos;
+
         while (isalnum(source[pos]) || source[pos] == '_') pos++;
+
         int len = pos - start;
-        strncpy(currentToken.value, &source[start], len);
-        currentToken.value[len] = '\0';
+        strncpy(Current_Token.value, &source[start], len);
+        Current_Token.value[len] = '\0';
         
-        if (strcmp(currentToken.value, "int") == 0)
-            currentToken.type = TOKEN_INT;
-        else if (strcmp(currentToken.value, "print") == 0)
-            currentToken.type = TOKEN_PRINT;
+        if (strcmp(Current_Token.value, "int") == 0)
+            Current_Token.type = T_INT;
+            
+        else if (strcmp(Current_Token.value, "print") == 0)
+            Current_Token.type = T_PRINT;
+
         else
-            currentToken.type = TOKEN_IDENT;
+            Current_Token.type = T_ID;
+
         return;
     }
     
-    // Check for numbers
-    if (isdigit(source[pos])) {
+    //check for numbers
+    if (isdigit(source[pos])) 
+    {
         int start = pos;
+
         while (isdigit(source[pos])) pos++;
+
         int len = pos - start;
-        strncpy(currentToken.value, &source[start], len);
-        currentToken.value[len] = '\0';
-        currentToken.type = TOKEN_NUMBER;
+        strncpy(Current_Token.value, &source[start], len);
+        Current_Token.value[len] = '\0';
+        Current_Token.type = T_NUM;
+
         return;
     }
     
-    // Single character tokens
-    currentToken.value[0] = source[pos];
-    currentToken.value[1] = '\0';
+    //single character tokens
+    Current_Token.value[0] = source[pos];
+    Current_Token.value[1] = '\0';
     
-    switch (source[pos]) {
-        case '+': currentToken.type = TOKEN_PLUS; break;
-        case '-': currentToken.type = TOKEN_MINUS; break;
-        case '*': currentToken.type = TOKEN_MULTIPLY; break;
-        case '/': currentToken.type = TOKEN_DIVIDE; break;
-        case '=': currentToken.type = TOKEN_ASSIGN; break;
-        case ';': currentToken.type = TOKEN_SEMICOLON; break;
-        case '(': currentToken.type = TOKEN_LPAREN; break;
-        case ')': currentToken.type = TOKEN_RPAREN; break;
+    switch (source[pos]) 
+    {
+        case '+': 
+            Current_Token.type = T_PLUS; break;
+
+        case '-': 
+            Current_Token.type = T_MINUS; break;
+
+        case '*': 
+            Current_Token.type = T_MULTIPLY; break;
+
+        case '/': 
+            Current_Token.type = T_DIVIDE; break;
+
+        case '=': 
+            Current_Token.type =  T_ASSIGN; break;
+
+        case ';': 
+            Current_Token.type = T_SEMICOLON; break;
+
+        case '(': 
+            Current_Token.type = T_LPAREN; break;
+
+        case ')': 
+            Current_Token.type = T_RPAREN; break;
+
         default: 
-            currentToken.type = TOKEN_ERROR;
-            char errMsg[100];
-            sprintf(errMsg, "Unexpected character '%c'", source[pos]);
-            error(errMsg);
+            Current_Token.type = T_ERROR;
+            char Err_Msg[100];
+            sprintf(Err_Msg, "UnExpected character '%c'", source[pos]);
+            Error(Err_Msg);
     }
+
     pos++;
 }
 
-// Parser: Factor → NUMBER | IDENTIFIER | "(" Expression ")"
-int factor() {
-    if (currentToken.type == TOKEN_NUMBER) {
-        int value = atoi(currentToken.value);
-        nextToken();
+//parser: factor - number| identifier| "(expression)"
+int Factor() 
+{
+    if (Current_Token.type == T_NUM) 
+    {
+        int value = atoi(Current_Token.value);
+        Next_Token();
+
         return value;
     }
     
-    if (currentToken.type == TOKEN_IDENT) {
+    if (Current_Token.type == T_ID) 
+    {
         char name[256];
-        strcpy(name, currentToken.value);
-        nextToken();
-        return getVariable(name);
+        strcpy(name, Current_Token.value);
+        Next_Token();
+
+        return Get_Variable(name);
     }
     
-    if (currentToken.type == TOKEN_LPAREN) {
-        nextToken();
-        int value = expression();
-        expect(TOKEN_RPAREN, "Expected ')'");
+    if (Current_Token.type == T_LPAREN) 
+    {
+        Next_Token();
+        int value = Expression();
+        Expect(T_RPAREN, "Expected ')'");
+
         return value;
     }
     
-    error("Expected number, identifier, or '('");
+    Error("Expected number, identifier, or '('");
+
     return 0;
 }
 
-// Parser: Term → Factor (("*" | "/") Factor)*
-int term() {
-    int result = factor();
+//parser: Term - Factor ((*|/)Factor)*
+int Term() 
+{
+    int result = Factor();
     
-    while (currentToken.type == TOKEN_MULTIPLY || currentToken.type == TOKEN_DIVIDE) {
-        TokenType op = currentToken.type;
-        nextToken();
-        int right = factor();
+    while (Current_Token.type == T_MULTIPLY || Current_Token.type == T_DIVIDE) 
+    {
+        Token_Type op = Current_Token.type;
+        Next_Token();
+
+        int right = Factor();
         
-        if (op == TOKEN_MULTIPLY) {
+        if (op == T_MULTIPLY) 
+        {
             result = result * right;
-        } else {
-            if (right == 0) {
-                error("Division by zero");
+        } 
+        else 
+        {
+            if (right == 0) 
+            {
+                Error("Division by zero");
             }
+
             result = result / right;
         }
     }
@@ -220,18 +291,23 @@ int term() {
     return result;
 }
 
-// Parser: Expression → Term (("+" | "-") Term)*
-int expression() {
-    int result = term();
+//parser: expression- term ((+|-)Term)*
+int Expression() 
+{
+    int result = Term();
     
-    while (currentToken.type == TOKEN_PLUS || currentToken.type == TOKEN_MINUS) {
-        TokenType op = currentToken.type;
-        nextToken();
-        int right = term();
+    while (Current_Token.type == T_PLUS || Current_Token.type == T_MINUS) 
+    {
+        Token_Type op = Current_Token.type;
+        Next_Token();
+        int right = Term();
         
-        if (op == TOKEN_PLUS) {
+        if (op == T_PLUS)
+        {
             result = result + right;
-        } else {
+        } 
+        else 
+        {
             result = result - right;
         }
     }
@@ -239,73 +315,88 @@ int expression() {
     return result;
 }
 
-// Parser: Statement → Declaration | PrintStmt
-void statement() {
-    int statementLine = currentToken.lineNumber;  // Track statement start line
+//parser: statement - declaration|printStmt
+void Statement() 
+{
+    int StatementLine = Current_Token.Line_Number;  //track statement start line
     
-    // Declaration: "int" IDENTIFIER "=" Expression ";"
-    if (currentToken.type == TOKEN_INT) {
-        nextToken();
+    //declaration: 'int' identifier '=' expression ';'
+    if (Current_Token.type == T_INT) 
+    {
+        Next_Token();
         
-        if (currentToken.type != TOKEN_IDENT) {
-            error("Expected identifier after 'int'");
+        if (Current_Token.type != T_ID) 
+        {
+            Error("Expected identifier after 'int'");
         }
         
         char name[256];
-        strcpy(name, currentToken.value);
-        nextToken();
+        strcpy(name, Current_Token.value);
+
+        Next_Token();
         
-        expect(TOKEN_ASSIGN, "Expected '=' in declaration");
+        Expect (T_ASSIGN, "Expected '=' in declaration");
         
-        int value = expression();
+        int value = Expression();
         
-        if (currentToken.type != TOKEN_SEMICOLON) {
-            // Report error at the statement line
-            int savedLine = currentToken.lineNumber;
-            currentToken.lineNumber = statementLine;
-            error("Expected ';' at end of statement");
-            currentToken.lineNumber = savedLine;
+        if (Current_Token.type != T_SEMICOLON) 
+        {
+            //report error at the statement line
+            int savedLine = Current_Token.Line_Number;
+
+            Current_Token.Line_Number = StatementLine;
+            Error("Expected ';' at end of Statement");
+            Current_Token.Line_Number = savedLine;
         }
-        nextToken();
+
+        Next_Token();
         
-        setVariable(name, value);
+        Set_Variable(name, value, StatementLine);
         return;
     }
     
-    // PrintStmt: "print" "(" Expression ")" ";"
-    if (currentToken.type == TOKEN_PRINT) {
-        nextToken();
+    //printStmt: 'print' '(Expression)' ';"'
+    if (Current_Token.type == T_PRINT) 
+    {
+        Next_Token();
         
-        expect(TOKEN_LPAREN, "Expected '(' after 'print'");
+        Expect (T_LPAREN, "Expected '(' after 'print'");
         
-        int value = expression();
+        int value = Expression();
         
-        expect(TOKEN_RPAREN, "Expected ')' after expression");
-        expect(TOKEN_SEMICOLON, "Expected ';' at end of statement");
+        Expect (T_RPAREN, "Expected ')' after Expression");
+        Expect (T_SEMICOLON, "Expected ';' at end of Statement");
         
         printf("%d\n", value);
+
         return;
     }
     
-    error("Expected 'int' or 'print' statement");
+    Error ("Expected 'int' or 'print' Statement");
 }
 
-// Parser: Program → Statement*
-void parse() {
-    while (currentToken.type != TOKEN_EOF) {
-        statement();
+//parser: program - statement*
+void Parse() 
+{
+    while (Current_Token.type != T_ENDFILE) 
+    {
+        Statement();
     }
 }
 
-int main(int argc, char *argv[]) {
-    if (argc != 2) {
-        printf("Usage: ./parser inputfile\n");
+int main(int argc, char *argv[]) 
+{
+    if (argc != 2)
+    {
+        printf("Usage: ./Parser inputfile\n");
         return 1;
     }
     
-    // Read source file
+    //read source file
     FILE *file = fopen(argv[1], "r");
-    if (!file) {
+    
+    if (!file) 
+    {
         printf("Error: Cannot open file '%s'\n", argv[1]);
         return 1;
     }
@@ -315,7 +406,9 @@ int main(int argc, char *argv[]) {
     fseek(file, 0, SEEK_SET);
     
     source = malloc(size + 1);
-    if (!source) {
+    
+    if (!source) 
+    {
         printf("Error: Memory allocation failed\n");
         fclose(file);
         return 1;
@@ -325,9 +418,9 @@ int main(int argc, char *argv[]) {
     source[size] = '\0';
     fclose(file);
     
-    // Start parsing
-    nextToken();
-    parse();
+    //start parsing
+    Next_Token();
+    Parse();
     
     free(source);
     return 0;
